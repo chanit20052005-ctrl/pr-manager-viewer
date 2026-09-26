@@ -355,7 +355,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<!-- (2026-08 ข้อ 69) Firebase — ใช้ compat SDK เหมือนไฟล์ admin ทุกประการ เพื่อให้ตัวแปร global "firebase" เรียกใช้ตรงๆ ในสคริปต์เดิมของไฟล์นี้ได้เลย -->
+<!-- (2026-08 ข้อ 69) Firebase — ใช้ compat SDK (ไม่ใช่ modular/ES module) เพราะไฟล์ทั้งหมดเป็น classic <script> ตัวเดียวที่แชร์ global scope กันอยู่แล้ว ใช้ compat จะได้ตัวแปร global "firebase" เรียกใช้ตรงๆ ในสคริปต์เดิมได้เลย ไม่ต้องเขียนสะพานเชื่อม module/classic scope เพิ่ม -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -537,35 +537,20 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
   /* (2026-07 ข้อ 37) Landing Page ทั้งหมด (CSS class .landing-* ที่เคยอยู่ตรงนี้) ถูก "ลบออก" ตามที่ผู้ใช้ขอ ไม่ใช่แค่ซ่อน — ดูรายละเอียดเหตุผล/สิ่งที่เปลี่ยนในประวัติการตัดสินใจข้อ 37
      ตอนนี้เปิดไฟล์แล้วเข้า Dashboard ทันที ไม่มีหน้าต้อนรับ/ปุ่ม "เข้าสู่ระบบ" คั่นอีกต่อไป */
 
-  /* ===== VIEWER-MODE CSS OVERRIDES (ไฟล์นี้เป็นฉบับสำหรับผู้ใช้ดูอย่างเดียว) =====
-     ซ่อนปุ่ม/อีลีเมนต์ที่ถูกสร้างใหม่ทุกครั้งที่ renderReview()/renderQueue() ทำงาน (แก้ที่ HTML ตรงๆ ไม่ได้เพราะยังไม่มีอยู่ตอนโหลดไฟล์)
-     ใช้ !important เพราะสไตล์จากสไตล์ชีตชนะ inline style ที่ JS เดิมตั้งค่าไว้เสมอ (เช่น bar.style.display='flex') โดยไม่ต้องแก้โค้ด JS เดิมเลย */
-  #addBlankRowBtn, #confirmBtn, #rejectBtn, #saveEditsBtn, #deleteAllBtn, #deleteFileOnlyBtn,
-  #replaceSavedBtn, #replaceSavedRiskyBtn, #cancelRiskyReplaceBtn, #fillMissingSavedBtn,
-  #reviewPanel .dup-row-btn, #reviewPanel .del-row-btn,
-  .queue-select-cb, #bulkActionBar, #queueSelectAllCb {
-    display: none !important;
-  }
-  /* ช่องกรอกข้อมูลในหน้าตรวจสอบเอกสาร (header fields + ตารางรายการ) ทำให้ดูค่าได้แต่แก้ไขไม่ได้ (readonly ตั้งค่าผ่าน JS ด้านล่างเพราะ CSS ล้วนๆ ทำ readonly จริงไม่ได้) */
-  #reviewPanel input[readonly], #reviewPanel .field-input[readonly] {
-    background: #f3f4f6 !important;
-    cursor: default;
-  }
-
-  /* (2026-08 ข้อ 69) หน้า login คลาวด์ — เหมือนไฟล์ admin ทุกประการ */
+  /* (2026-08 ข้อ 69) หน้า login คลาวด์ — ซ่อน #appRoot ไว้ก่อนด้วย inline style ตอนโหลดหน้า (ดูตรง HTML) แล้วให้ JS สลับเปิด/ปิดเองตามสถานะ login ผ่าน firebase.auth().onAuthStateChanged */
   #authGate{position:fixed;inset:0;background:var(--sidebar);display:flex;align-items:center;justify-content:center;z-index:9999;}
   #authGate .auth-card{background:var(--surface);border-radius:12px;padding:32px;width:100%;max-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.25);}
 </style>
 </head>
 <body>
 
-<!-- (2026-08 ข้อ 69) ด่านล็อกอินก่อนเข้าดูข้อมูล — ใช้ "ชื่อผู้ใช้" ธรรมดา ไม่โชว์คำว่าอีเมลเลย เหมือนไฟล์ admin ทุกประการ -->
+<!-- (2026-08 ข้อ 69) ด่านล็อกอินก่อนเข้าแอป — ใช้ "ชื่อผู้ใช้" ธรรมดา ไม่โชว์คำว่าอีเมลเลย (ข้างในแปลงเป็นอีเมลปลอมให้เองตอนส่งไป Firebase ดูฟังก์ชัน usernameToEmail() ท้ายสคริปต์) -->
 <div id="authGate">
   <div class="auth-card">
     <div style="text-align:center;margin-bottom:20px;">
       <div class="stamp" style="margin:0 auto 10px;">PR</div>
-      <div style="font-weight:600;font-size:16px;">PR Manager — สำหรับผู้ดู</div>
-      <div style="color:var(--text-2);font-size:12.5px;">เข้าสู่ระบบเพื่อดูข้อมูล</div>
+      <div style="font-weight:600;font-size:16px;">PR Manager — Admin</div>
+      <div style="color:var(--text-2);font-size:12.5px;">เข้าสู่ระบบเพื่อจัดการข้อมูล</div>
     </div>
     <div style="margin-bottom:12px;">
       <label style="display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;">ชื่อผู้ใช้</label>
@@ -582,7 +567,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
 
 <div class="app" id="appRoot" style="display:none;">
   <!-- (2026-08 ข้อ 71) ป้ายบอกบทบาท — ลอยตายตัวมุมขวาบน อยู่นอก .sidebar/.main จึงเห็นทุกหน้าโดยไม่ต้องแก้ทุกหน้า -->
-  <div class="role-badge viewer">User</div>
+  <div class="role-badge admin">Admin</div>
   <div class="sidebar">
     <div class="brand">
       <div class="stamp">PR</div>
@@ -605,7 +590,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
       อัปโหลด / ตรวจสอบ
       <span class="nav-badge" id="queueBadge">0</span>
     </button>
-    <button class="nav-item" data-page="checker" style="display:none;">
+    <button class="nav-item" data-page="checker">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="15.5" r="2.5"/><path d="M15.5 19.5L18 22"/></svg>
       ตรวจสอบเอกสาร
     </button>
@@ -615,8 +600,8 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
     </button>
 
     <!-- (2026-07 ข้อ 37) ปุ่ม "กลับหน้าแรก" (backToLandingBtn เดิม) ถูกลบออกไปพร้อม Landing Page — ไม่มีหน้าต้อนรับให้กลับไปแล้ว ดูรายละเอียดในประวัติการตัดสินใจข้อ 37 -->
-    <!-- (2026-08 ข้อ 69) ปุ่มออกจากระบบ (คลาวด์) — ใช้คลาส .sidebar-exit-btn เดิม เหมือนไฟล์ admin ทุกประการ -->
-    <!-- (2026-08 ข้อ 71) ย้ายขึ้นมาไว้ถัดจาก "ตั้งค่า" เหมือนไฟล์ admin — เอา margin-top:auto ออก ใส่เส้นคั่นบางๆ แทน -->
+    <!-- (2026-08 ข้อ 69) ปุ่มออกจากระบบ (คลาวด์) — ใช้คลาส .sidebar-exit-btn เดิม (สไตล์เหมือน .nav-item แต่ไม่โดน listener กลางของ .nav-item จับ เพราะไม่มี data-page) -->
+    <!-- (2026-08 ข้อ 71) ผู้ใช้ขอย้ายปุ่มนี้ขึ้นมาไว้ถัดจาก "ตั้งค่า" เลย (เดิมใช้ margin-top:auto ดันไปสุดล่างของแถบเมนู ไกลเกินไปเวลาหน้าจอเตี้ย) — ตำแหน่งใน DOM เดิมอยู่ถัดจากปุ่มตั้งค่าอยู่แล้ว แค่เอา margin-top:auto ออกแล้วใส่เส้นคั่นบางๆ ด้านบนแทน เพื่อแยกให้เห็นชัดว่าไม่ใช่เมนูนำทางปกติ -->
     <button type="button" class="sidebar-exit-btn" id="authLogoutBtn" style="margin-top:8px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
       ออกจากระบบ
@@ -656,14 +641,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
           <div class="kpi-icon" style="background:var(--teal-bg);color:var(--teal);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
           <p class="kpi-label">ยอดรวมการสั่งซื้อ</p><p class="kpi-value" id="kpiSubtotal">-</p>
         </div>
-        <div class="kpi warn">
-          <div class="kpi-icon" style="background:var(--red-bg);color:var(--red);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
-          <p class="kpi-label">VAT (7%)</p><p class="kpi-value" id="kpiVat">-</p>
-        </div>
-        <div class="kpi ok">
-          <div class="kpi-icon" style="background:var(--teal-bg);color:var(--teal);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 1z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/></svg></div>
-          <p class="kpi-label">Grand total</p><p class="kpi-value" id="kpiTotal">-</p>
-        </div>
+        <!-- (2026-09 ข้อ 73) ผู้ใช้ขอเอาการ์ด "VAT" และ "Grand total" ออกจาก Dashboard — เหลือ 3 การ์ด (จำนวนเอกสาร/จำนวนสินค้า/ยอดรวม) — ลบทั้งคู่เพราะถ้าเหลือแค่ Grand total ก็จะเป็นเลขเดียวกับยอดรวม สับสน (อัตรา VAT ในหน้าตั้งค่ายังเก็บไว้เผื่อใช้ในอนาคต) -->
       </div>
 
       <!-- (2026-08 ข้อ 54) เปลี่ยนจาก grid-2 เป็น grid-3 เพิ่มการ์ดที่ 3 "เหตุผลที่ใช้บ่อยที่สุด" — ผู้ใช้ขอดูว่าใช้เหตุผลอะไรบ้างในการเบิก เรียงมาก→น้อย Top 5
@@ -708,12 +686,12 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
       <!-- (2026-07) แยก 2 แท็บ ตามที่ผู้ใช้ขอ: "อัปโหลดไฟล์ใหม่" (ปกติ) กับ "อัปโหลดไฟล์แก้ไข (แทนที่ข้อมูลเดิม)" — สำหรับกรณีไฟล์รอบแรกอ่านไม่ได้/ไม่ครบ
            แล้วหาไฟล์ที่แก้ไขได้ของ PR เดียวกันมาอัปโหลดซ้ำเพื่อแก้ข้อมูลเดิม (ดูปุ่ม "แทนที่ข้อมูลเดิมของเอกสารนี้" ในประวัติการตัดสินใจข้อ 18)
            แยกเป็นคนละแท็บ+คิวไฟล์คนละรายการ เพื่อไม่ให้ไฟล์แก้ไขไปปนกับไฟล์ใหม่ที่ยังรอตรวจสอบตามปกติ ช่วยเวลาอัปโหลดทีเดียวหลายไฟล์แล้วบางไฟล์เป็นไฟล์แก้ไขปนอยู่ -->
-      <div class="filters" style="margin-bottom:16px;display:none;">
+      <div class="filters" style="margin-bottom:16px;">
         <button class="btn upload-tab active" data-upload-tab="new">อัปโหลดไฟล์ใหม่</button>
         <button class="btn upload-tab" data-upload-tab="fix">อัปโหลดไฟล์แก้ไข (แทนที่ข้อมูลเดิม)</button>
       </div>
 
-      <div class="upload-tab-panel active" id="upload-tab-new" style="display:none;">
+      <div class="upload-tab-panel active" id="upload-tab-new">
         <div class="dropzone" id="dropzone">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin:0 auto 8px;display:block;"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
           <p class="dropzone-title">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
@@ -754,7 +732,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
             <button class="btn ghost" id="bulkCancelBtn" style="font-size:12px;padding:5px 10px;">ยกเลิกที่เลือก</button>
             <button class="btn ghost" id="bulkClearSelectionBtn" style="font-size:12px;padding:5px 10px;">ล้างการเลือก</button>
           </div>
-          <label style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-bottom:8px;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-bottom:8px;cursor:pointer;">
             <input type="checkbox" id="queueSelectAllCb"> เลือกทั้งหมด
           </label>
           <div id="queueList" style="max-height:calc(100vh - 220px);overflow-y:auto;padding-right:6px;"></div>
@@ -870,7 +848,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
       <div class="page-head">
         <div><h1 class="page-title">ตั้งค่า</h1><p class="page-desc">จัดการข้อมูลหลักที่ใช้อ้างอิงทั่วทั้งระบบ</p></div>
       </div>
-      <div class="filters" style="margin-bottom:16px;display:none;">
+      <div class="filters" style="margin-bottom:16px;">
         <button class="btn settings-tab active" data-tab="branch">สาขา</button>
         <button class="btn settings-tab" data-tab="dept">แผนก / ฝ่าย</button>
         <button class="btn settings-tab" data-tab="vendor">ผู้จำหน่าย</button>
@@ -880,7 +858,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
         <button class="btn settings-tab" data-tab="backup">สำรอง/กู้คืนข้อมูล</button>
       </div>
 
-      <div class="settings-panel" id="settings-branch">
+      <div class="settings-panel active" id="settings-branch">
         <div class="card">
           <p class="card-title">จัดการสาขา (<span id="branchCount">0</span> สาขา)</p>
           <div class="settings-add-row">
@@ -931,7 +909,7 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
             <label>อัตราภาษีมูลค่าเพิ่ม (%)</label>
             <input class="field-input" id="vatRateInput" type="number" min="0" max="100" step="0.1">
           </div>
-          <p class="dropzone-sub">อัตรานี้จะถูกใช้คำนวณ VAT และ Grand total ในหน้า Dashboard โดยอัตโนมัติ หากภาครัฐปรับอัตราภาษีในอนาคต แก้ที่นี่ที่เดียวพอ</p>
+          <p class="dropzone-sub">อัตรานี้ถูกเก็บไว้ในไฟล์สำรอง/คลาวด์ (การ์ด VAT บน Dashboard ถูกเอาออกแล้วตามคำขอ) หากภาครัฐปรับอัตราภาษีในอนาคต แก้ที่นี่ที่เดียวพอ</p>
           <button class="btn accent" id="vatSaveBtn" style="margin-top:8px;">บันทึกอัตราภาษี</button>
           <span id="vatSavedMsg" style="display:none;color:var(--accent-text);font-size:12.5px;margin-left:10px;">บันทึกแล้ว</span>
         </div>
@@ -958,13 +936,14 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
         </div>
       </div>
 
-      <div class="settings-panel active" id="settings-backup">
+      <div class="settings-panel" id="settings-backup">
         <div class="card">
-          <p class="card-title">☁️ สถานะการเชื่อมต่อคลาวด์</p>
-          <p class="dropzone-sub" style="margin-bottom:10px;">ไฟล์นี้เชื่อมต่อกับข้อมูลบนคลาวด์แบบเรียลไทม์อยู่แล้ว — เมื่อผู้ดูแลระบบซิงก์ข้อมูลใหม่ หน้านี้จะอัปเดตให้อัตโนมัติทันที ไม่ต้องกดปุ่มอะไรเพิ่มเอง (ปุ่ม "กู้คืนจากไฟล์สำรอง" ด้านล่างยังใช้งานได้เผื่อกรณีเชื่อมต่อคลาวด์ไม่ได้)</p>
-          <div id="cloudStatusBox" style="font-size:13.5px;">กำลังเชื่อมต่อ...</div>
+          <p class="card-title">☁️ ซิงก์ข้อมูลขึ้นคลาวด์ (สำหรับผู้ดู)</p>
+          <p class="dropzone-sub" style="margin-bottom:14px;">กดปุ่มด้านล่างเพื่อส่งข้อมูลปัจจุบันทั้งหมดขึ้นคลาวด์ — ผู้ดู (viewer) ที่ login ไฟล์ pr_manager_viewer.html อยู่จะเห็นข้อมูลอัปเดตอัตโนมัติทันทีแบบเรียลไทม์ ไม่ต้องส่งไฟล์ให้ใครเองอีกแล้ว</p>
+          <button class="btn accent" id="cloudSyncBtn">☁️ ซิงก์ข้อมูลขึ้นคลาวด์ตอนนี้</button>
+          <span id="cloudSyncStatus" style="margin-left:10px;font-size:12.5px;color:var(--text-2);"></span>
         </div>
-        <div class="card" style="margin-top:14px;display:none;">
+        <div class="card" style="margin-top:14px;">
           <p class="card-title">บันทึกไฟล์สำรอง (Backup)</p>
           <p class="dropzone-sub" style="margin-bottom:14px;">ระบบนี้ไม่มีฐานข้อมูลจริง — ข้อมูลทั้งหมดอยู่ใน memory ของเบราว์เซอร์เท่านั้น ถ้าปิดแท็บหรือรีเฟรชหน้า <b>ข้อมูลจะหายทั้งหมด</b> กดปุ่มด้านล่างเพื่อดาวน์โหลดข้อมูลทั้งหมดตอนนี้เป็นไฟล์ .json เก็บไว้ แล้วค่อยนำกลับมาโหลดคืนได้ภายหลัง (ดูหัวข้อกู้คืนด้านล่าง)</p>
           <div style="margin-bottom:14px;max-width:360px;">
@@ -990,8 +969,9 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
               ล้างข้อมูลปัจจุบันแล้วแทนที่ทั้งหมด
             </label>
           </div>
-          <input type="file" id="backupRestoreInput" accept=".json" style="display:none;">
-          <button class="btn accent" id="backupRestoreBtn">เลือกไฟล์สำรองเพื่อกู้คืน</button>
+          <!-- (2026-08 ข้อ 70) เพิ่ม multiple ให้เลือกกู้คืนได้ทีเดียวหลายไฟล์ (กด Ctrl หรือ Shift ค้างแล้วคลิกเลือกหลายไฟล์ในหน้าต่างเลือกไฟล์ของเครื่อง) -->
+          <input type="file" id="backupRestoreInput" accept=".json" multiple style="display:none;">
+          <button class="btn accent" id="backupRestoreBtn">เลือกไฟล์สำรองเพื่อกู้คืน (เลือกได้หลายไฟล์)</button>
           <div id="backupRestoreResult" style="font-size:13px;margin-top:12px;display:none;"></div>
         </div>
       </div>
@@ -2610,16 +2590,10 @@ function renderDashboard(){
   const docCount = new Set(rows.map(r=>r.docno)).size;
   const itemUnits = rows.reduce((s,r)=>s+r.qty,0);
   const subtotal = rows.reduce((s,r)=>s+r.total,0);
-  const vat = subtotal*(vatRate/100);
-  const grand = subtotal+vat;
-
+  // (2026-09 ข้อ 73) ตัดการคำนวณ/แสดง VAT และ Grand total ออก (การ์ดถูกลบจาก HTML แล้ว) — ห้าม getElementById('kpiVat'/'kpiTotal') อีก เพราะ element ไม่มีแล้วจะ error
   document.getElementById('kpiDocs').textContent = fmt(docCount);
   document.getElementById('kpiItems').textContent = fmt(itemUnits);
   document.getElementById('kpiSubtotal').textContent = fmt(subtotal);
-  document.getElementById('kpiVat').textContent = fmt(vat);
-  document.getElementById('kpiTotal').textContent = fmt(grand);
-  const vatLabelEl = document.querySelector('.kpi.warn .kpi-label');
-  if(vatLabelEl) vatLabelEl.textContent = `VAT (${vatRate}%)`;
 
   const byProduct = {};
   rows.forEach(r=>{ byProduct[r.item] = (byProduct[r.item]||0) + r.qty; });
@@ -3140,38 +3114,32 @@ document.getElementById('backupRestoreResult').addEventListener('click', (e)=>{
 });
 
 document.getElementById('backupRestoreInput').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
+  // (2026-08 ข้อ 70) ผู้ใช้ขอเลือกกู้คืนได้ทีเดียวหลายไฟล์ (Ctrl/Shift+คลิกในหน้าต่างเลือกไฟล์) — เดิมรองรับแค่ e.target.files[0] ไฟล์เดียว
+  // แปลงเป็น array แล้ววนประมวลผลทีละไฟล์ตามลำดับที่เลือก (ไม่ใช้ Promise.all ขนานกัน เพราะต้องให้ไฟล์หลังเห็นผลของไฟล์ก่อนหน้าแล้ว เพื่อกันข้อมูลซ้ำข้ามไฟล์ด้วย — เช่น 2 ไฟล์มีเอกสารเลขที่เดียวกันปนอยู่)
+  const files = Array.from(e.target.files);
   e.target.value = ''; // เคลียร์ค่า input ทันที เผื่อผู้ใช้อยากเลือกไฟล์เดิมซ้ำอีกครั้ง (change event จะไม่ยิงถ้าไม่เคลียร์)
-  if(!file) return;
-  try{
-    const text = await file.text();
-    const data = JSON.parse(text);
-    if(!data || !Array.isArray(data.ordersData)){
-      throw new Error('ไฟล์นี้ไม่ใช่ไฟล์สำรองที่ถูกต้อง (โครงสร้างข้อมูลไม่ตรง)');
-    }
-    const mode = document.querySelector('input[name="restoreMode"]:checked').value;
-    let addedCount = 0, skippedCount = 0;
-    const addedRecords = []; // (2026-08 ข้อ 57) เก็บ reference ของ record ที่เพิ่งเพิ่มเข้า ordersData จริงจากการกู้คืนครั้งนี้ ไว้ใช้ตอนกด "ยกเลิกการกู้คืนนี้"
-    // (2026-08 ข้อ 68) เก็บ reference ของ doc ที่เพิ่งเพิ่มเข้า queue จริงจากการกู้คืนครั้งนี้ เหมือนกับ addedRecords ด้านบน — ใช้ตอน undo (ลบออกจากคิวด้วย ไม่ใช่แค่ ordersData) กันคิวค้างรายการ "ยืนยันแล้ว" ที่ไม่มี ordersData คู่กันอยู่หลัง undo
-    const addedQueueDocs = [];
-    const hasQueueInBackup = Array.isArray(data.queue); // ไฟล์สำรองรุ่นเก่า (ก่อนข้อ 68) จะไม่มี key นี้เลย — ต้องเช็คก่อนเสมอ กันพังตอนกู้คืนไฟล์เก่า
+  if(!files.length) return;
+  const mode = document.querySelector('input[name="restoreMode"]:checked').value;
 
-    if(mode==='replace'){
-      // ล้างของเดิมทั้งหมดก่อน — ordersData เป็น const ต้องใช้ splice ล้าง ห้ามเขียน ordersData = [] (จะพัง เพราะมี const ประกาศไว้) queue เป็น let แต่ใช้ splice เหมือนกันเพื่อความสม่ำเสมอ (เผื่อโค้ดที่อื่นถือ reference ของอาร์เรย์นี้ไว้)
-      ordersData.splice(0, ordersData.length);
-      // (2026-08 ข้อ 68) โหมด "แทนที่ข้อมูลเดิมทั้งหมด" ควรแทนที่คิวไฟล์ที่เคยตรวจสอบ/ยืนยันไว้ด้วย ไม่ใช่แค่ ordersData — ไม่งั้นคิวเดิมจะค้างปนกับของที่กู้คืนมาใหม่ สับสนว่าอันไหนเป็นอันไหน
-      queue.splice(0, queue.length);
-      if(Array.isArray(data.masterBranches)) masterBranches = data.masterBranches.slice();
-      if(Array.isArray(data.masterDepts)) masterDepts = data.masterDepts.slice();
-      if(Array.isArray(data.masterVendors)) masterVendors = data.masterVendors.slice();
-      // (2026-08 ข้อ 50) รองรับไฟล์สำรองรุ่นเก่า (ก่อนเปลี่ยนแท็บ "หมวดหมู่สินค้า" เป็น "รายการสินค้า") ที่ยังใช้ชื่อ key เดิม productCategories — ถ้าไม่มี masterProducts ให้ fallback ไปใช้ productCategories แทน กันข้อมูลหายตอนกู้คืนไฟล์เก่า
-      if(Array.isArray(data.masterProducts)) masterProducts = data.masterProducts.slice();
-      else if(Array.isArray(data.productCategories)) masterProducts = data.productCategories.slice();
-      if(typeof data.vatRate === 'number') vatRate = data.vatRate;
-      if(hasQueueInBackup) data.queue.forEach(q=>{ queue.push(q); addedQueueDocs.push(q); });
-      data.ordersData.forEach(r=>{ ordersData.push(r); addedRecords.push(r); addedCount++; });
-    } else {
-      // โหมดรวม: จัดกลุ่มรายการที่นำเข้าตามเลขที่เอกสาร (docno) แล้วข้ามทั้งกลุ่มถ้าเลขที่เอกสารนั้นมีอยู่แล้วในระบบ (กันข้อมูลซ้ำ)
+  if(mode==='replace'){
+    // ล้างของเดิมทั้งหมด "ครั้งเดียว" ก่อนเริ่มวนไฟล์ทั้งหมด — ห้ามล้างซ้ำในลูปทีละไฟล์ ไม่งั้นไฟล์แรกที่เพิ่งกู้เข้าไปจะถูกล้างทิ้งตอนประมวลผลไฟล์ถัดไป (ordersData เป็น const ต้องใช้ splice ล้าง ห้ามเขียน ordersData = [] เพราะจะพัง)
+    ordersData.splice(0, ordersData.length);
+    queue.splice(0, queue.length);
+  }
+
+  for(const file of files){
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if(!data || !Array.isArray(data.ordersData)){
+        throw new Error('ไฟล์นี้ไม่ใช่ไฟล์สำรองที่ถูกต้อง (โครงสร้างข้อมูลไม่ตรง)');
+      }
+      let addedCount = 0, skippedCount = 0;
+      const addedRecords = []; // (2026-08 ข้อ 57) เก็บ reference ของ record ที่เพิ่งเพิ่มเข้า ordersData จริงจากไฟล์นี้ ไว้ใช้ตอนกด "ยกเลิกการกู้คืนนี้" (แยกเป็นรายไฟล์ ไม่รวมกับไฟล์อื่นในชุดเดียวกัน — undo ทีละไฟล์ได้อิสระ)
+      const addedQueueDocs = [];
+      const hasQueueInBackup = Array.isArray(data.queue); // ไฟล์สำรองรุ่นเก่า (ก่อนข้อ 68) จะไม่มี key นี้เลย — ต้องเช็คก่อนเสมอ กันพังตอนกู้คืนไฟล์เก่า
+
+      // ใช้ตรรกะ "จัดกลุ่มตามเลขที่เอกสาร (docno) แล้วข้ามทั้งกลุ่มถ้ามีอยู่แล้ว" ทั้งสองโหมด — ต่างกันแค่ว่าก่อนวนถึงไฟล์แรกในโหมด replace ระบบล้างข้อมูลไปแล้วครั้งเดียวด้านบน (existingDocnos จึงว่างเปล่าตอนเริ่ม ผลลัพธ์เหมือน "แทนที่ทั้งหมด" ทุกประการเมื่อกู้ไฟล์เดียว) ส่วนโหมด merge ไม่ล้างอะไรเลย เช็คซ้ำกับข้อมูลปัจจุบันตามปกติ — วิธีนี้ยังกันข้อมูลซ้ำระหว่างไฟล์ที่เลือกมาพร้อมกันหลายไฟล์ในโหมด replace ด้วย (เช่น 2 ไฟล์มีเอกสารเลขที่เดียวกันปนอยู่ จะไม่ถูกเพิ่มซ้ำสองรอบ)
       const existingDocnos = new Set(ordersData.map(o=>o.docno));
       const groups = new Map();
       data.ordersData.forEach(r=>{
@@ -3183,7 +3151,7 @@ document.getElementById('backupRestoreInput').addEventListener('change', async (
         if(existingDocnos.has(docno)){ skippedCount += rows.length; }
         else { rows.forEach(r=>{ ordersData.push(r); addedRecords.push(r); addedCount++; }); }
       });
-      // (2026-08 ข้อ 68) รวมคิวไฟล์ด้วยเหมือนกัน — ข้ามไฟล์ที่ (ก) เลขที่เอกสารตรงกับไฟล์ที่มีอยู่แล้วในคิวปัจจุบัน (กันเพิ่มซ้ำถ้ากู้คืนไฟล์เดียวกันซ้ำสองรอบ) หรือ (ข) เป็นไฟล์ที่ "ยืนยันแล้ว" ตรงกับกลุ่ม docno ที่เพิ่งถูกข้ามไปด้านบนเพราะซ้ำกับ ordersData เดิม (ไฟล์ pending ที่ยังไม่เคยยืนยัน ไม่มีข้อมูลใน ordersData ให้ชนซ้ำ จึงไม่ข้ามด้วยเหตุผลนี้)
+      // (2026-08 ข้อ 68) รวมคิวไฟล์ด้วยเหมือนกัน — ข้ามไฟล์ที่ (ก) เลขที่เอกสารตรงกับไฟล์ที่มีอยู่แล้วในคิวปัจจุบัน (กันเพิ่มซ้ำถ้ากู้คืนไฟล์เดียวกันซ้ำสองรอบ หรือกู้หลายไฟล์ที่มีไฟล์ซ้ำกันปนอยู่) หรือ (ข) เป็นไฟล์ที่ "ยืนยันแล้ว" ตรงกับกลุ่ม docno ที่เพิ่งถูกข้ามไปด้านบนเพราะซ้ำกับ ordersData เดิม
       if(hasQueueInBackup){
         const currentQueueDocnos = new Set(queue.filter(q=>q.header && q.header.docno).map(q=>q.header.docno));
         data.queue.forEach(q=>{
@@ -3196,34 +3164,43 @@ document.getElementById('backupRestoreInput').addEventListener('change', async (
           currentQueueDocnos.add(qDocno);
         });
       }
-      // รายชื่อสาขา/แผนก/ผู้จำหน่าย/หมวดหมู่: รวม (union) เฉพาะรายการใหม่ที่ยังไม่มี ไม่ลบของเดิม
-      if(Array.isArray(data.masterBranches)) data.masterBranches.forEach(b=>{ if(!masterBranches.includes(b)) masterBranches.push(b); });
-      if(Array.isArray(data.masterDepts)) data.masterDepts.forEach(d=>{ if(!masterDepts.includes(d)) masterDepts.push(d); });
-      if(Array.isArray(data.masterVendors)) data.masterVendors.forEach(v=>{ if(!masterVendors.includes(v)) masterVendors.push(v); });
-      // (2026-08 ข้อ 50) เหมือนโหมด replace ด้านบน — รองรับไฟล์สำรองรุ่นเก่าที่ยังใช้ key productCategories
-      if(Array.isArray(data.masterProducts)) data.masterProducts.forEach(c=>{ if(!masterProducts.includes(c)) masterProducts.push(c); });
-      else if(Array.isArray(data.productCategories)) data.productCategories.forEach(c=>{ if(!masterProducts.includes(c)) masterProducts.push(c); });
-      // vatRate: โหมดรวมไม่แตะอัตราภาษีปัจจุบัน (ผู้ใช้อาจตั้งค่าไว้ใหม่หลังจากสำรองไฟล์นี้แล้ว)
+
+      if(mode==='replace'){
+        // โหมดแทนที่: master data (สาขา/แผนก/ผู้จำหน่าย/หมวดหมู่/VAT) ใช้ค่าจากไฟล์ "ล่าสุดที่ประมวลผล" เป็นหลัก (เขียนทับของไฟล์ก่อนหน้าในชุดเดียวกัน) — ถ้ากู้ไฟล์เดียว ผลลัพธ์เหมือนเดิมทุกประการกับพฤติกรรมก่อนข้อ 70
+        if(Array.isArray(data.masterBranches)) masterBranches = data.masterBranches.slice();
+        if(Array.isArray(data.masterDepts)) masterDepts = data.masterDepts.slice();
+        if(Array.isArray(data.masterVendors)) masterVendors = data.masterVendors.slice();
+        // (2026-08 ข้อ 50) รองรับไฟล์สำรองรุ่นเก่าที่ยังใช้ชื่อ key เดิม productCategories
+        if(Array.isArray(data.masterProducts)) masterProducts = data.masterProducts.slice();
+        else if(Array.isArray(data.productCategories)) masterProducts = data.productCategories.slice();
+        if(typeof data.vatRate === 'number') vatRate = data.vatRate;
+      } else {
+        // โหมดรวม: รวม (union) เฉพาะรายการใหม่ที่ยังไม่มี ไม่ลบของเดิม — vatRate ไม่แตะอัตราภาษีปัจจุบัน
+        if(Array.isArray(data.masterBranches)) data.masterBranches.forEach(b=>{ if(!masterBranches.includes(b)) masterBranches.push(b); });
+        if(Array.isArray(data.masterDepts)) data.masterDepts.forEach(d=>{ if(!masterDepts.includes(d)) masterDepts.push(d); });
+        if(Array.isArray(data.masterVendors)) data.masterVendors.forEach(v=>{ if(!masterVendors.includes(v)) masterVendors.push(v); });
+        if(Array.isArray(data.masterProducts)) data.masterProducts.forEach(c=>{ if(!masterProducts.includes(c)) masterProducts.push(c); });
+        else if(Array.isArray(data.productCategories)) data.productCategories.forEach(c=>{ if(!masterProducts.includes(c)) masterProducts.push(c); });
+      }
+
+      const queueMsg = hasQueueInBackup ? ` และไฟล์ที่เคยตรวจสอบ/ยืนยัน ${addedQueueDocs.length} ไฟล์` : '';
+      const message = mode==='replace'
+        ? `นำเข้าใหม่ ${addedCount} รายการ${queueMsg} (แทนที่ข้อมูลเดิมทั้งหมด) (กู้สำเร็จ)`
+        : `นำเข้าใหม่ ${addedCount} รายการ${queueMsg}${skippedCount>0 ? `, ข้าม ${skippedCount} รายการ (เลขที่เอกสารซ้ำกับที่มีอยู่แล้ว)` : ''} (กู้สำเร็จ)`;
+      restoreHistory.push({ fileName: file.name, ok: true, message, addedRecords, addedQueueDocs, undone: false });
+    }catch(err){
+      restoreHistory.push({ fileName: file.name, ok: false, message: 'เกิดข้อผิดพลาด: ' + err.message + ' (กู้ไม่สำเร็จ)', addedRecords: [], addedQueueDocs: [], undone: false });
     }
-
-    renderSettingsLists();
-    renderQueue(); renderReview();
-    populateDashFilters(); renderDashboard();
-    populateOrderFilters(); renderOrders();
-    populateReportFilters(); renderReports();
-    persistAppData();
-
-    const queueMsg = hasQueueInBackup ? ` และไฟล์ที่เคยตรวจสอบ/ยืนยัน ${addedQueueDocs.length} ไฟล์` : '';
-    const message = mode==='replace'
-      ? `นำเข้าใหม่ ${addedCount} รายการ${queueMsg} (แทนที่ข้อมูลเดิมทั้งหมด) (กู้สำเร็จ)`
-      : `นำเข้าใหม่ ${addedCount} รายการ${queueMsg}${skippedCount>0 ? `, ข้าม ${skippedCount} รายการ (เลขที่เอกสารซ้ำกับที่มีอยู่แล้ว)` : ''} (กู้สำเร็จ)`;
-    restoreHistory.push({ fileName: file.name, ok: true, message, addedRecords, addedQueueDocs, undone: false });
-    renderRestoreHistory();
-    showToast('กู้คืนข้อมูลจากไฟล์สำรองเรียบร้อยแล้ว');
-  }catch(err){
-    restoreHistory.push({ fileName: file.name, ok: false, message: 'เกิดข้อผิดพลาด: ' + err.message + ' (กู้ไม่สำเร็จ)', addedRecords: [], addedQueueDocs: [], undone: false });
-    renderRestoreHistory();
   }
+
+  renderSettingsLists();
+  renderQueue(); renderReview();
+  populateDashFilters(); renderDashboard();
+  populateOrderFilters(); renderOrders();
+  populateReportFilters(); renderReports();
+  persistAppData();
+  renderRestoreHistory();
+  showToast(files.length > 1 ? `กู้คืนข้อมูลจาก ${files.length} ไฟล์เรียบร้อยแล้ว` : 'กู้คืนข้อมูลจากไฟล์สำรองเรียบร้อยแล้ว');
 });
 
 renderSettingsLists();
@@ -3274,9 +3251,9 @@ if(loadAutosavedAppData()){
   populateReportFilters();
 }
 
-// ===== (2026-08 ข้อ 69) Firebase Auth (login ก่อนเข้าดูข้อมูล) + รับข้อมูลจากคลาวด์แบบเรียลไทม์ =====
-// เหมือนไฟล์ admin ทุกประการในส่วน login แต่แทนที่จะมีปุ่มซิงก์ขึ้น ไฟล์นี้ "ฟัง" การเปลี่ยนแปลงของเอกสารเดียวกันด้วย onSnapshot แล้ววาดข้อมูลใหม่ทุกครั้งที่มีการเปลี่ยนแปลง (เรียลไทม์ ไม่ต้อง refresh)
-// กันเคสอินเทอร์เน็ตล่ม/โหลด SDK จาก gstatic.com ไม่สำเร็จ — เหมือนไฟล์ admin (ดูคอมเมนต์เดียวกันที่นั่น)
+// ===== (2026-08 ข้อ 69) Firebase Auth (login ก่อนเข้าแอป) + ซิงก์ข้อมูลขึ้นคลาวด์ให้ pr_manager_viewer.html อ่านแบบเรียลไทม์ =====
+// ใช้ compat SDK (โหลดผ่าน <script> ธรรมดาที่หัวไฟล์) จึงมีตัวแปร global "firebase" ให้เรียกตรงๆ ในสคริปต์นี้ได้เลย ไม่ต้องมีสะพานเชื่อมข้าม scope
+// กันเคสอินเทอร์เน็ตล่ม/โหลด SDK จาก gstatic.com ไม่สำเร็จ — ถ้าไม่มี "firebase" global เลย (สคริปต์ข้างบนโหลดไม่สำเร็จ) ให้โชว์ข้อความชัดเจนแทนที่จะปล่อยให้ปุ่ม "เข้าสู่ระบบ" กดแล้วไม่มีอะไรเกิดขึ้นเงียบๆ (เพราะโค้ดส่วนที่เหลือทั้งหมดข้างล่างจะไม่ทำงานเลยถ้า throw ตรงนี้)
 if(typeof firebase === 'undefined'){
   document.getElementById('authError').textContent = 'ไม่สามารถเชื่อมต่อระบบ login ได้ (ต้องใช้อินเทอร์เน็ต) กรุณาตรวจสอบการเชื่อมต่อแล้วรีเฟรชหน้านี้ใหม่อีกครั้ง';
   document.getElementById('authError').style.display = 'block';
@@ -3293,13 +3270,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
-const cloudStateRef = fbDb.collection('appData').doc('state'); // path เดียวกับไฟล์ admin และกฎความปลอดภัย Firestore
-const AUTH_EMAIL_DOMAIN = '@chanyon-pr.local';
+const cloudStateRef = fbDb.collection('appData').doc('state'); // path เดียวกับที่ตั้งไว้ในกฎความปลอดภัย Firestore
+const AUTH_EMAIL_DOMAIN = '@chanyon-pr.local'; // โดเมนปลอม ไม่มีอยู่จริง — ใช้แค่แปลง "ชื่อผู้ใช้" เป็นรูปแบบอีเมลที่ Firebase Auth (Email/Password) ต้องการ ผู้ใช้ไม่เห็น/ไม่ต้องรู้เรื่องนี้เลย
 
 const authGateEl = document.getElementById('authGate');
 const appRootEl = document.getElementById('appRoot');
 const authErrorEl = document.getElementById('authError');
-let cloudUnsubscribe = null; // เก็บฟังก์ชันยกเลิกการฟัง onSnapshot ไว้ ใช้ตอน logout กันฟังต่อทั้งที่ออกจากระบบไปแล้ว
 
 function usernameToEmail(username){
   return String(username || '').trim() + AUTH_EMAIL_DOMAIN;
@@ -3308,7 +3284,7 @@ function showAuthError(msg){
   authErrorEl.textContent = msg;
   authErrorEl.style.display = 'block';
 }
-function doViewerLogin(){
+function doAdminLogin(){
   const u = document.getElementById('authUsername').value;
   const p = document.getElementById('authPassword').value;
   if(!u || !p){ showAuthError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'); return; }
@@ -3317,81 +3293,47 @@ function doViewerLogin(){
     showAuthError('เข้าสู่ระบบไม่สำเร็จ — ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
   });
 }
-document.getElementById('authLoginBtn').addEventListener('click', doViewerLogin);
-document.getElementById('authUsername').addEventListener('keydown', e=>{ if(e.key==='Enter') doViewerLogin(); });
-document.getElementById('authPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') doViewerLogin(); });
+document.getElementById('authLoginBtn').addEventListener('click', doAdminLogin);
+document.getElementById('authUsername').addEventListener('keydown', e=>{ if(e.key==='Enter') doAdminLogin(); });
+document.getElementById('authPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') doAdminLogin(); });
 document.getElementById('authLogoutBtn').addEventListener('click', ()=>{ fbAuth.signOut(); });
-
-// นำข้อมูลที่ได้จากคลาวด์มาแทนที่ข้อมูลปัจจุบันทั้งหมด (เหมือนโหมด "ล้างข้อมูลปัจจุบันแล้วแทนที่ทั้งหมด" ของปุ่มกู้คืนไฟล์เดิม) แล้ว re-render ทุกหน้า
-function applyCloudData(data){
-  if(!data) return;
-  ordersData.splice(0, ordersData.length);
-  if(Array.isArray(data.ordersData)) data.ordersData.forEach(r=>ordersData.push(r));
-  queue.splice(0, queue.length);
-  if(Array.isArray(data.queue)) data.queue.forEach(q=>queue.push(q));
-  if(Array.isArray(data.masterBranches)) masterBranches = data.masterBranches.slice();
-  if(Array.isArray(data.masterDepts)) masterDepts = data.masterDepts.slice();
-  if(Array.isArray(data.masterVendors)) masterVendors = data.masterVendors.slice();
-  if(Array.isArray(data.masterProducts)) masterProducts = data.masterProducts.slice();
-  if(typeof data.vatRate === 'number') vatRate = data.vatRate;
-  selectedId = null; // กันเลือกไฟล์เดิมค้างไว้ที่อาจไม่มีอยู่แล้วในข้อมูลชุดใหม่
-  renderSettingsLists();
-  renderQueue(); renderReview();
-  populateDashFilters(); renderDashboard();
-  populateOrderFilters(); renderOrders();
-  populateReportFilters(); renderReports();
-  const statusBox = document.getElementById('cloudStatusBox');
-  if(statusBox){
-    const updatedTxt = data.updatedAt ? new Date(data.updatedAt).toLocaleString('th-TH') : 'ไม่ทราบเวลา';
-    statusBox.innerHTML = `<span style="color:var(--accent-text);">● เชื่อมต่อแล้ว</span> — ข้อมูลล่าสุดอัปเดตเมื่อ ${updatedTxt} (${ordersData.length} รายการสั่งซื้อ)`;
-  }
-}
 
 fbAuth.onAuthStateChanged(user=>{
   if(user){
     authGateEl.style.display = 'none';
     appRootEl.style.display = '';
-    if(!cloudUnsubscribe){
-      cloudUnsubscribe = cloudStateRef.onSnapshot(snap=>{
-        if(snap.exists){
-          applyCloudData(snap.data());
-        } else {
-          const statusBox = document.getElementById('cloudStatusBox');
-          if(statusBox) statusBox.innerHTML = '<span style="color:var(--text-2);">● เชื่อมต่อแล้ว — ยังไม่มีข้อมูลบนคลาวด์ (รอผู้ดูแลระบบกดซิงก์ข้อมูลครั้งแรก)</span>';
-        }
-      }, err=>{
-        const statusBox = document.getElementById('cloudStatusBox');
-        if(statusBox) statusBox.innerHTML = `<span style="color:var(--red-text);">● เชื่อมต่อไม่สำเร็จ: ${err.message}</span>`;
-      });
-    }
   } else {
     authGateEl.style.display = 'flex';
     appRootEl.style.display = 'none';
     document.getElementById('authPassword').value = '';
-    if(cloudUnsubscribe){ cloudUnsubscribe(); cloudUnsubscribe = null; }
+  }
+});
+
+// สร้างข้อมูลก้อนเดียวกับที่ใช้ export ไฟล์ .json (backupExportBtn ด้านบน) ส่งขึ้น Firestore document เดียว (appData/state) ให้ viewer อ่านแบบเรียลไทม์
+function buildCloudPayload(){
+  const raw = {
+    ordersData, queue, masterBranches, masterDepts, masterVendors, vatRate, masterProducts,
+    updatedAt: new Date().toISOString()
+  };
+  return JSON.parse(JSON.stringify(raw)); // ตัด undefined/ค่าที่ Firestore เขียนไม่ได้ออกให้หมดก่อนเสมอ กันเขียนพังกลางทาง
+}
+document.getElementById('cloudSyncBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('cloudSyncStatus');
+  const btn = document.getElementById('cloudSyncBtn');
+  btn.disabled = true;
+  statusEl.textContent = 'กำลังซิงก์...';
+  try{
+    await cloudStateRef.set(buildCloudPayload());
+    statusEl.textContent = `ซิงก์สำเร็จเมื่อ ${new Date().toLocaleTimeString('th-TH')}`;
+    showToast(`ซิงก์ข้อมูลขึ้นคลาวด์แล้ว (${ordersData.length} รายการสั่งซื้อ)`);
+  }catch(err){
+    statusEl.textContent = 'ซิงก์ไม่สำเร็จ: ' + err.message;
+    showToast('ซิงก์ข้อมูลขึ้นคลาวด์ไม่สำเร็จ — ' + err.message);
+  }finally{
+    btn.disabled = false;
   }
 });
 } // ปิด if(typeof firebase === 'undefined'){...} else { ... นี่คือจุดจบของ else
-</script>
-
-<!-- ===== VIEWER-MODE LOCKDOWN SCRIPT (ไฟล์นี้เป็นฉบับสำหรับผู้ใช้ดูอย่างเดียว) =====
-     แยกเป็น <script> คนละก้อนจากสคริปต์หลักด้านบนโดยตั้งใจ เพื่อไม่ให้กระทบ logic เดิมแม้แต่บรรทัดเดียว —
-     ทำหน้าที่แค่ตั้งค่า readonly ให้ช่องกรอกข้อมูลในหน้าตรวจสอบเอกสาร (ดูได้ แก้ไขไม่ได้) ทุกครั้งที่ renderReview() วาดตารางใหม่
-     (ปุ่มต่างๆ ที่ต้องซ่อนไปแล้วด้วย CSS !important ด้านบน ก้อนนี้ไม่ต้องยุ่งเพิ่ม) -->
-<script>
-(function(){
-  function lockdownReviewInputs(){
-    document.querySelectorAll('#reviewPanel .field-input, #reviewPanel .items-table input').forEach(function(el){
-      if(!el.readOnly) el.readOnly = true;
-    });
-  }
-  lockdownReviewInputs();
-  var reviewPanel = document.getElementById('reviewPanel');
-  if(reviewPanel){
-    var mo = new MutationObserver(function(){ lockdownReviewInputs(); });
-    mo.observe(reviewPanel, { childList: true, subtree: true });
-  }
-})();
 </script>
 
 </body>
