@@ -555,6 +555,10 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
   /* (2026-08 ข้อ 69) หน้า login คลาวด์ — เหมือนไฟล์ admin ทุกประการ */
   #authGate{position:fixed;inset:0;background:var(--sidebar);display:flex;align-items:center;justify-content:center;z-index:9999;}
   #authGate .auth-card{background:var(--surface);border-radius:12px;padding:32px;width:100%;max-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.25);}
+  /* (2026-10 ข้อ 77) ช่องวันที่ วว/ดด/ปปปป พ.ศ. */
+  .field-input.date-invalid{border-color:var(--red-text) !important;background:var(--red-bg);}
+  .date-th-msg{font-size:11.5px;color:var(--accent-text);margin-top:4px;min-height:14px;}
+  .date-th-msg.bad{color:var(--red-text);font-weight:600;}
 </style>
 </head>
 <body>
@@ -1053,6 +1057,69 @@ function getVisibleQueue(){
   });
 }
 
+// ===== (2026-10 ข้อ 77) ช่อง "วันที่สั่งซื้อ" แบบ วว/ดด/ปปปป (พ.ศ.) =====
+const DATE_TH_ERR = 'รูปแบบวันที่ไม่ถูกต้อง — พิมพ์ วว/ดด/ปปปป (พ.ศ.) เช่น 08/10/2569';
+// "2026-10-08" → "08/10/2569"
+function isoToThaiDMY(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); if(!m) return '';
+  return `${m[3]}/${m[2]}/${Number(m[1])+543}`;
+}
+// รับ "8/10/2569", "08-10-69", "08.10.2569", "08102569", หรือเผลอพิมพ์ ค.ศ. "08/10/2026" → {ok, iso, display} | {empty} | {ok:false}
+// ปี 2 หลัก = พ.ศ. 25xx · ปี 4 หลัก ≥ 2400 = พ.ศ. · ปี 1900–2199 = ถือว่าพิมพ์เป็น ค.ศ. แปลงให้เอง · เช็ควันที่มีจริง (เช่น 31/02 หรือ 29/02 ปีไม่อธิกสุรทิน = ผิด)
+function parseThaiDateInput(text){
+  let s = String(text||'').trim();
+  if(!s) return { empty:true };
+  s = s.replace(/[.\-\s]+/g,'/');
+  if(/^\d{8}$/.test(s)) s = s.slice(0,2)+'/'+s.slice(2,4)+'/'+s.slice(4);
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(s);
+  if(!m) return { ok:false };
+  const d = Number(m[1]), mo = Number(m[2]); let y = Number(m[3]), ce;
+  if(m[3].length===2) ce = 2500 + y - 543;
+  else if(y >= 2400 && y <= 2800) ce = y - 543;
+  else if(y >= 1900 && y <= 2199) ce = y;
+  else return { ok:false };
+  if(mo<1 || mo>12 || d<1) return { ok:false };
+  const leap = (ce%4===0 && ce%100!==0) || ce%400===0;
+  const dim = [31, leap?29:28, 31,30,31,30,31,31,30,31,30,31][mo-1];
+  if(d > dim) return { ok:false };
+  const iso = `${ce}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return { ok:true, iso, display: isoToThaiDMY(iso) };
+}
+function bindThaiDateInput(panel, doc){
+  const inp = panel.querySelector('.field-input[data-date-th]'); if(!inp) return;
+  const msg = panel.querySelector('#dateThMsg');
+  const setMsg = (t, bad)=>{ if(msg){ msg.textContent = t; msg.classList.toggle('bad', !!bad); } inp.classList.toggle('date-invalid', !!bad); };
+  const apply = (final)=>{
+    const r = parseThaiDateInput(inp.value);
+    if(r.empty){ doc.header.date = ''; doc._dateInputInvalid = false; setMsg('ไม่ได้กรอก — ตอนบันทึกจะใช้วันที่วันนี้แทน', false); return; }
+    if(r.ok){
+      doc.header.date = r.iso; doc._dateInputInvalid = false;
+      const [y,mo,d] = r.iso.split('-').map(Number);
+      setMsg(`= ${d} ${THAI_MONTHS_SHORT[mo-1]} ${y+543}`, false);
+      if(final) inp.value = r.display; // จัดรูปให้สวยตอนออกจากช่อง เช่น "8/10/69" → "08/10/2569"
+      return;
+    }
+    // พิมพ์ไม่ครบ/ผิดรูปแบบ — เก็บข้อความดิบไว้ (ไม่ทิ้งสิ่งที่พิมพ์) + ติดธงไว้ให้ปุ่มยืนยัน/บันทึกบล็อก ไม่ให้ระบบแอบใช้ "วันนี้" แทนโดยไม่รู้ตัว
+    doc.header.date = inp.value.trim(); doc._dateInputInvalid = true;
+    setMsg(final ? DATE_TH_ERR : 'กำลังพิมพ์… (วว/ดด/ปปปป พ.ศ.)', final);
+  };
+  inp.addEventListener('input', ()=>apply(false));
+  inp.addEventListener('blur', ()=>apply(true));
+}
+// กันกด "ยืนยัน"/"บันทึก" ตอนช่องวันที่ยังผิดรูปแบบ — ดักแบบ capture ก่อน listener เดิมของแต่ละปุ่ม (ไม่ต้องแก้ทีละปุ่ม)
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest && e.target.closest('#confirmBtn,#saveEditsBtn,#replaceSavedBtn,#replaceSavedRiskyBtn,#fillMissingSavedBtn,#bulkConfirmBtn');
+  if(!btn) return;
+  const bad = btn.id==='bulkConfirmBtn'
+    ? queue.filter(q=>selectedQueueIds.has(q.id) && q._dateInputInvalid)
+    : queue.filter(q=>q.id===selectedId && q._dateInputInvalid);
+  if(!bad.length) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  const names = bad.slice(0,3).map(q=>(q.header && q.header.docno) || q.name || '').filter(Boolean).join(', ');
+  showToast(`ยังบันทึกไม่ได้ — วันที่สั่งซื้อไม่ถูกต้อง${names ? ' ('+names+')' : ''} กรุณาแก้เป็น วว/ดด/ปปปป พ.ศ.`);
+  const inp = document.querySelector('.field-input[data-date-th]'); if(inp && btn.id!=='bulkConfirmBtn'){ inp.focus(); inp.select(); }
+}, true);
+
 function renderQueue(){
   const list = document.getElementById('queueList');
   list.innerHTML='';
@@ -1287,10 +1354,22 @@ function renderReview(){
   let fieldsHtml = '';
   Object.keys(doc.header).filter(key=>!(showBranchCol && (key==='branch'||key==='dept'))).forEach(key=>{
     const isDate = key==='date';
-    const dateVal = /^\d{4}-\d{2}-\d{2}$/.test(doc.header[key]) ? doc.header[key] : '';
+    // (2026-10 ข้อ 77) ผู้ใช้ขอให้ช่อง "วันที่สั่งซื้อ" เป็น ว/ด/ป แบบ พ.ศ. ตรงกับเอกสารจริง (เดิมเป็น <input type="date"> ซึ่งเบราว์เซอร์บังคับแสดงตามภาษาเครื่อง = ด/ว/ปี ค.ศ. เปลี่ยนไม่ได้)
+    // → เปลี่ยนเป็นช่องพิมพ์ข้อความ "วว/ดด/ปปปป" (พ.ศ.) แต่ค่าที่เก็บจริงใน doc.header.date / ordersData ยังเป็น YYYY-MM-DD (ค.ศ.) เหมือนเดิมทุกอย่าง แปลงด้วย string ล้วน (ไม่ใช้ new Date() กัน timezone เลื่อนวัน)
+    // ไม่ใส่ data-key ให้ช่องนี้ (ใช้ data-date-th แทน) เพื่อไม่ให้ listener รวมของช่องอื่นเขียนข้อความดิบทับ doc.header.date — มี listener แยกด้านล่าง (bindThaiDateInput)
+    if(isDate){
+      const raw = doc.header[key];
+      const shown = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? isoToThaiDMY(raw) : (doc._dateInputInvalid ? raw : '');
+      fieldsHtml += `<div class="review-field">
+      <label>${fieldLabel(key)} <span style="font-weight:400;color:var(--text-3);">(วว/ดด/ปปปป พ.ศ.)</span></label>
+      <input class="field-input${doc._dateInputInvalid ? ' date-invalid' : ''}" data-date-th="1" inputmode="numeric" autocomplete="off" placeholder="เช่น 08/10/2569" value="${shown.replace(/"/g,'&quot;')}">
+      <div class="date-th-msg" id="dateThMsg">${doc._dateInputInvalid ? DATE_TH_ERR : (shown ? '' : 'ไม่ได้กรอก — ตอนบันทึกจะใช้วันที่วันนี้แทน')}</div>
+    </div>`;
+      return;
+    }
     fieldsHtml += `<div class="review-field">
       <label>${fieldLabel(key)}</label>
-      <input class="field-input" data-key="${key}" ${isDate ? `type="date" value="${dateVal}"` : `value="${doc.header[key]}"`} ${key==='vendor' ? 'list="vendorOptions"' : ''}>
+      <input class="field-input" data-key="${key}" value="${doc.header[key]}" ${key==='vendor' ? 'list="vendorOptions"' : ''}>
     </div>`;
   });
   // "เหตุผล" (จากตาราง PR เช่น "ทดแทน SSD เสีย") ไม่ใช่ชื่อสินค้า — แยกเป็นคอลัมน์ต่างหาก
@@ -1532,6 +1611,7 @@ function renderReview(){
       doc.header[inp.dataset.key] = inp.value;
     });
   });
+  bindThaiDateInput(panel, doc); // (2026-10 ข้อ 77) ช่องวันที่แบบ วว/ดด/ปปปป พ.ศ.
 
   // มี 3 ปุ่มแยกกันตามสถานะเอกสาร แทนที่จะใช้ปุ่มเดียวสลับข้อความ (กันคนกดสับสน/กดยืนยันซ้ำ):
   // - ยังไม่ยืนยัน: "ยืนยันและบันทึกลงฐานข้อมูล" + "ยกเลิกไฟล์นี้" (ไม่มีข้อมูลใน ordersData ให้ต้องห่วงอีก)
