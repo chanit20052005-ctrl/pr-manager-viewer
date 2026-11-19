@@ -561,6 +561,9 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
   .date-th-msg.bad{color:var(--red-text);font-weight:600;}
   /* (2026-11 ข้อ 79) แถบแจ้งปัญหาการโหลดข้อมูล (แทนข้อความ error ในหน้าล็อกอินเดิม) */
   .cloud-banner{background:var(--red-bg);color:var(--red-text);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;line-height:1.6;}
+  /* (2026-11 ข้อ 80) ผู้ใช้ขอซ่อนหน้า "ตั้งค่า" ในฝั่ง User — มีแค่ปุ่มกู้คืนไฟล์สำรอง (ไม่มีประโยชน์กับผู้ดู + ทำให้เข้าใจผิดว่าแก้ข้อมูลได้) กับกล่องสถานะ (มีแถบแดง #cloudBanner แจ้งปัญหาแทนแล้ว)
+     ซ่อนด้วย CSS แทนการลบ element ทิ้ง เพราะโค้ดเดิมยังอ้างถึง #page-settings / #cloudStatusBox อยู่ — เมนู "อัปโหลด/ตรวจสอบ" ยังเก็บไว้ให้เข้าดู PR ได้ */
+  .nav-item[data-page="settings"], #page-settings{display:none !important;}
 </style>
 </head>
 <body>
