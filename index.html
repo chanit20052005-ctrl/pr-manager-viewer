@@ -351,13 +351,13 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
 <meta charset="UTF-8">
 <title>PR Manager — ระบบจัดการรายการสั่งซื้อ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow"> <!-- (ข้อ 79) ไม่ต้องการให้ Google ค้นเจอ เพราะไม่มีล็อกอินแล้ว -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- (2026-08 ข้อ 69) Firebase — ใช้ compat SDK เหมือนไฟล์ admin ทุกประการ เพื่อให้ตัวแปร global "firebase" เรียกใช้ตรงๆ ในสคริปต์เดิมของไฟล์นี้ได้เลย -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
   :root{
@@ -559,32 +559,14 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
   .field-input.date-invalid{border-color:var(--red-text) !important;background:var(--red-bg);}
   .date-th-msg{font-size:11.5px;color:var(--accent-text);margin-top:4px;min-height:14px;}
   .date-th-msg.bad{color:var(--red-text);font-weight:600;}
+  /* (2026-11 ข้อ 79) แถบแจ้งปัญหาการโหลดข้อมูล (แทนข้อความ error ในหน้าล็อกอินเดิม) */
+  .cloud-banner{background:var(--red-bg);color:var(--red-text);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;line-height:1.6;}
 </style>
 </head>
 <body>
 
-<!-- (2026-08 ข้อ 69) ด่านล็อกอินก่อนเข้าดูข้อมูล — ใช้ "ชื่อผู้ใช้" ธรรมดา ไม่โชว์คำว่าอีเมลเลย เหมือนไฟล์ admin ทุกประการ -->
-<div id="authGate">
-  <div class="auth-card">
-    <div style="text-align:center;margin-bottom:20px;">
-      <div class="stamp" style="margin:0 auto 10px;">PR</div>
-      <div style="font-weight:600;font-size:16px;">PR Manager — สำหรับผู้ดู</div>
-      <div style="color:var(--text-2);font-size:12.5px;">เข้าสู่ระบบเพื่อดูข้อมูล</div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;">ชื่อผู้ใช้</label>
-      <input class="field-input" id="authUsername" style="width:100%;box-sizing:border-box;" autocomplete="username">
-    </div>
-    <div style="margin-bottom:16px;">
-      <label style="display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;">รหัสผ่าน</label>
-      <input class="field-input" id="authPassword" type="password" style="width:100%;box-sizing:border-box;" autocomplete="current-password">
-    </div>
-    <button class="btn accent" id="authLoginBtn" style="width:100%;">เข้าสู่ระบบ</button>
-    <div id="authError" style="display:none;color:var(--red-text);font-size:12.5px;margin-top:10px;"></div>
-  </div>
-</div>
-
-<div class="app" id="appRoot" style="display:none;">
+<!-- (2026-11 ข้อ 79) ผู้ใช้ขอเอาหน้าล็อกอินออก ("แค่ดูอย่างเดียว ไม่จำเป็นต้องล็อกอิน") — เปิดเว็บแล้วเห็นข้อมูลทันที ต้องแก้กฎ Firestore ให้ allow read: if true คู่กัน (การเขียนยังจำกัดเฉพาะ UID admin เหมือนเดิม) -->
+<div class="app" id="appRoot">
   <!-- (2026-08 ข้อ 71) ป้ายบอกบทบาท — ลอยตายตัวมุมขวาบน อยู่นอก .sidebar/.main จึงเห็นทุกหน้าโดยไม่ต้องแก้ทุกหน้า -->
   <div class="role-badge viewer">User</div>
   <div class="sidebar">
@@ -619,15 +601,10 @@ END OF CONTEXT NOTE — HTML CODE STARTS BELOW
     </button>
 
     <!-- (2026-07 ข้อ 37) ปุ่ม "กลับหน้าแรก" (backToLandingBtn เดิม) ถูกลบออกไปพร้อม Landing Page — ไม่มีหน้าต้อนรับให้กลับไปแล้ว ดูรายละเอียดในประวัติการตัดสินใจข้อ 37 -->
-    <!-- (2026-08 ข้อ 69) ปุ่มออกจากระบบ (คลาวด์) — ใช้คลาส .sidebar-exit-btn เดิม เหมือนไฟล์ admin ทุกประการ -->
-    <!-- (2026-08 ข้อ 71) ย้ายขึ้นมาไว้ถัดจาก "ตั้งค่า" เหมือนไฟล์ admin — เอา margin-top:auto ออก ใส่เส้นคั่นบางๆ แทน -->
-    <button type="button" class="sidebar-exit-btn" id="authLogoutBtn" style="margin-top:8px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-      ออกจากระบบ
-    </button>
   </div>
 
   <div class="main">
+    <div id="cloudBanner" class="cloud-banner" style="display:none;"></div>
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
@@ -3441,10 +3418,10 @@ if(loadAutosavedAppData()){
 // ===== (2026-08 ข้อ 69) Firebase Auth (login ก่อนเข้าดูข้อมูล) + รับข้อมูลจากคลาวด์แบบเรียลไทม์ =====
 // เหมือนไฟล์ admin ทุกประการในส่วน login แต่แทนที่จะมีปุ่มซิงก์ขึ้น ไฟล์นี้ "ฟัง" การเปลี่ยนแปลงของเอกสารเดียวกันด้วย onSnapshot แล้ววาดข้อมูลใหม่ทุกครั้งที่มีการเปลี่ยนแปลง (เรียลไทม์ ไม่ต้อง refresh)
 // กันเคสอินเทอร์เน็ตล่ม/โหลด SDK จาก gstatic.com ไม่สำเร็จ — เหมือนไฟล์ admin (ดูคอมเมนต์เดียวกันที่นั่น)
+function showCloudBanner(msg){ const b = document.getElementById('cloudBanner'); if(!b) return; if(msg){ b.textContent = msg; b.style.display = ''; } else { b.style.display = 'none'; } }
 if(typeof firebase === 'undefined'){
-  document.getElementById('authError').textContent = 'ไม่สามารถเชื่อมต่อระบบ login ได้ (ต้องใช้อินเทอร์เน็ต) กรุณาตรวจสอบการเชื่อมต่อแล้วรีเฟรชหน้านี้ใหม่อีกครั้ง';
-  document.getElementById('authError').style.display = 'block';
-  document.getElementById('authLoginBtn').disabled = true;
+  showCloudBanner('โหลดข้อมูลไม่ได้ — ต้องเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบการเชื่อมต่อแล้วรีเฟรชหน้านี้');
+  const sb = document.getElementById('cloudStatusBox'); if(sb) sb.textContent = 'เชื่อมต่อไม่ได้ (ไม่มีอินเทอร์เน็ต)';
 } else {
 const firebaseConfig = {
   apiKey: "AIzaSyCfbAdlR8vY7RZW0NUFGxdX4Rvhe506UGQ",
@@ -3455,36 +3432,8 @@ const firebaseConfig = {
   appId: "1:92936812384:web:de1f2e8f603f7dfdd5d005"
 };
 firebase.initializeApp(firebaseConfig);
-const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 const cloudStateRef = fbDb.collection('appData').doc('state'); // path เดียวกับไฟล์ admin และกฎความปลอดภัย Firestore
-const AUTH_EMAIL_DOMAIN = '@chanyon-pr.local';
-
-const authGateEl = document.getElementById('authGate');
-const appRootEl = document.getElementById('appRoot');
-const authErrorEl = document.getElementById('authError');
-let cloudUnsubscribe = null; // เก็บฟังก์ชันยกเลิกการฟัง onSnapshot ไว้ ใช้ตอน logout กันฟังต่อทั้งที่ออกจากระบบไปแล้ว
-
-function usernameToEmail(username){
-  return String(username || '').trim() + AUTH_EMAIL_DOMAIN;
-}
-function showAuthError(msg){
-  authErrorEl.textContent = msg;
-  authErrorEl.style.display = 'block';
-}
-function doViewerLogin(){
-  const u = document.getElementById('authUsername').value;
-  const p = document.getElementById('authPassword').value;
-  if(!u || !p){ showAuthError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'); return; }
-  authErrorEl.style.display = 'none';
-  fbAuth.signInWithEmailAndPassword(usernameToEmail(u), p).catch(()=>{
-    showAuthError('เข้าสู่ระบบไม่สำเร็จ — ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-  });
-}
-document.getElementById('authLoginBtn').addEventListener('click', doViewerLogin);
-document.getElementById('authUsername').addEventListener('keydown', e=>{ if(e.key==='Enter') doViewerLogin(); });
-document.getElementById('authPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') doViewerLogin(); });
-document.getElementById('authLogoutBtn').addEventListener('click', ()=>{ fbAuth.signOut(); });
 
 // นำข้อมูลที่ได้จากคลาวด์มาแทนที่ข้อมูลปัจจุบันทั้งหมด (เหมือนโหมด "ล้างข้อมูลปัจจุบันแล้วแทนที่ทั้งหมด" ของปุ่มกู้คืนไฟล์เดิม) แล้ว re-render ทุกหน้า
 function applyCloudData(data){
@@ -3511,31 +3460,25 @@ function applyCloudData(data){
   }
 }
 
-fbAuth.onAuthStateChanged(user=>{
-  if(user){
-    authGateEl.style.display = 'none';
-    appRootEl.style.display = '';
-    if(!cloudUnsubscribe){
-      cloudUnsubscribe = cloudStateRef.onSnapshot(snap=>{
-        if(snap.exists){
-          applyCloudData(snap.data());
-        } else {
-          const statusBox = document.getElementById('cloudStatusBox');
-          if(statusBox) statusBox.innerHTML = '<span style="color:var(--text-2);">● เชื่อมต่อแล้ว — ยังไม่มีข้อมูลบนคลาวด์ (รอผู้ดูแลระบบกดซิงก์ข้อมูลครั้งแรก)</span>';
-        }
-      }, err=>{
-        const statusBox = document.getElementById('cloudStatusBox');
-        if(statusBox) statusBox.innerHTML = `<span style="color:var(--red-text);">● เชื่อมต่อไม่สำเร็จ: ${err.message}</span>`;
-      });
-    }
+// (2026-11 ข้อ 79) ไม่มีล็อกอินแล้ว — ฟังข้อมูลบนคลาวด์ทันทีที่เปิดหน้า (เรียลไทม์เหมือนเดิม: admin กดซิงก์เมื่อไหร่ หน้านี้อัปเดตเอง)
+cloudStateRef.onSnapshot(snap=>{
+  showCloudBanner('');
+  if(snap.exists){
+    applyCloudData(snap.data());
   } else {
-    authGateEl.style.display = 'flex';
-    appRootEl.style.display = 'none';
-    document.getElementById('authPassword').value = '';
-    if(cloudUnsubscribe){ cloudUnsubscribe(); cloudUnsubscribe = null; }
+    const statusBox = document.getElementById('cloudStatusBox');
+    if(statusBox) statusBox.innerHTML = '<span style="color:var(--text-2);">● เชื่อมต่อแล้ว — ยังไม่มีข้อมูลบนคลาวด์ (รอผู้ดูแลระบบกดซิงก์ข้อมูลครั้งแรก)</span>';
   }
+}, err=>{
+  const denied = err && err.code === 'permission-denied';
+  const msg = denied
+    ? 'ยังเปิดดูข้อมูลแบบไม่ล็อกอินไม่ได้ — ผู้ดูแลระบบต้องแก้กฎ Firestore เป็น allow read: if true'
+    : 'โหลดข้อมูลไม่สำเร็จ: ' + (err && err.message ? err.message : 'ไม่ทราบสาเหตุ') + ' — ลองรีเฟรชหน้านี้';
+  showCloudBanner(msg);
+  const statusBox = document.getElementById('cloudStatusBox');
+  if(statusBox) statusBox.innerHTML = `<span style="color:var(--red-text);">● ${msg}</span>`;
 });
-} // ปิด if(typeof firebase === 'undefined'){...} else { ... นี่คือจุดจบของ else
+} // ปิด if(typeof firebase === 'undefined'){...} else { ... }
 </script>
 
 <!-- ===== VIEWER-MODE LOCKDOWN SCRIPT (ไฟล์นี้เป็นฉบับสำหรับผู้ใช้ดูอย่างเดียว) =====
